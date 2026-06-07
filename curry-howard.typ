@@ -10,11 +10,11 @@
 #show math.frac: it => math.display(it)
 
 
-
-
 = #align(center)[#text(size: 11pt)[Logic, Programs, and] Curry-Howard Correspondence]
 
 $text("Propositions as Types, Proofs as Programs")$
+
+#text(size: 8pt)[#link("https://github.com/segment-tree/CH-ppt")[click to find newest slides]]
 
 #v(4.0cm)
 #align(center)[#text(size: 11pt)[#text(fill: blue)[Ruize Ma]]]
@@ -27,23 +27,28 @@ Propositions:
 
 $A, B, C ::= p | A -> B | A ∧ B | A ∨ B$
 
-Sequent judgment:
+Logical judgment:
 
 $Γ ⊢ A$
 
 `Γ` is a context of assumptions; `A` is the goal formula.
 
+True: $quad top quad$, False: $quad bot$.
+
 #pagebreak()
 
 = Structural Reading of Sequents
 
-Think of a derivation as a tree of rule applications.
+//Think of a derivation as a tree of rule applications.
 
 If a rule has premises and a conclusion, it is written:
 
-$frac(("premise 1" quad "premise 2"), ("conclusion"))$
+$frac(("premise 1" quad "premise 2" quad "premise 3"), ("conclusion"))$
 
-We will instantiate this with implication/and/or/forall rules.
+Think of a derivation as a tree of rule applications (proof tree):
+
+$frac(frac(J_1 quad J_2, J_3) quad frac(J_4 quad J_5, J_6), J_7)$
+
 
 #pagebreak()
 
@@ -99,6 +104,8 @@ $¬P := P -> ⊥$
 
 #pagebreak()
 
+
+/*
 = Derivation Example 1
 
 Target formula:
@@ -117,6 +124,8 @@ $⊢ A -> (B -> A)$
 $frac(frac((A, B ⊢ A),(A ⊢ B -> A)), ⊢ A -> (B -> A))$
 
 #pagebreak()
+
+*/
 
 = Derivation Example 2
 
@@ -153,13 +162,33 @@ Why use functional languages here?
 
 Our path in this part:
 
-1. start with higher-order functions (build intuition);
+1. start with functions (build intuition);
 2. move to product/sum/function types;
 3. then introduce lambda calculus and STLC (formal view).
 
 #pagebreak()
 
-= Higher-Order Functions
+= Functions
+
+We define functions like this: $ quad #text[square(x)] := x^2$ 
+
+Square also can be represented: $ quad #text[square] := lambda x. space x^2$
+
+Function can be substituted: $quad #text[square(42)] = 42^2$
+
+In lambada we write: $quad (lambda x. space x^2) space 42 = 42^2$
+
+In lambda, we use $(f x)$ or $f x$ as function call instead of $f(x)$
+
+*Currying:*
+$(((lambda x. space (lambda y. space x + y)) space c_1) space c_2) = ((lambda y. space c_1 + y) space c_2) = c_1 + c_2$
+
+
+#pagebreak()
+
+= Functions
+
+More examples:
 
 ```haskell
 applyTwice :: (a -> a) -> a -> a
@@ -178,7 +207,7 @@ def apply_twice(f, x):
 auto apply_twice = [](auto f, auto x) { return f(f(x)); };
 ```
 
-Functions are inputs/outputs of other functions.
+Functions can be inputs/outputs of other functions.
 
 #pagebreak()
 
@@ -198,9 +227,42 @@ def add(x):
 auto add = [](int x) { return [x](int y) { return x + y; }; };
 ```
 
-UnCurried: $"(Int, Int)" -> "Int"$.
+UnCurried: $"(Int, Int)" -> "Int"$ $quad$ (tuple/pair will be talked in next page).
 
-Curried: $"Int" -> "Int" -> "Int"$ ($->$ is right-associative).
+Curried: $"Int" -> "Int" -> "Int"$ $quad$ ($->$ is right-associative).
+
+#pagebreak()
+
+= Untyped Lambda Calculus
+
+Syntax:
+
+$E ::= x | lambda x. E | (E space E) $
+
+Alpha-renaming: bound variable names do not matter.
+
+$lambda x. space f space x equiv lambda y. space f space y$
+
+Beta-reduction: function application substitutes the argument.
+
+$(lambda x. x) y -> y quad quad (lambda x. lambda y. x) a b -> a$
+
+Eta-conversion: a function is determined by its behavior.
+
+$lambda x. f(x) equiv f$
+
+#pagebreak()
+
+= Function Types
+
+We use arrow to represent functions.
+
+```cpp
+int add5(int x){return x+5;}
+auto add5=[](int x) -> int {return x+5;}
+```
+
+has type $"Int" -> "Int"$
 
 #pagebreak()
 
@@ -231,41 +293,47 @@ Constructor stores both components simultaneously.
 
 ```haskell
 data Either a b = Left a | Right b
+
 ```
 
 ```cpp
 std::variant<int, std::string> v = 42;
-```
 
+std::visit(overloaded {
+  [](int arg) { cout << "int: " << arg << '\n'; },
+  [](const string& arg) { cout << "string: " << arg << '\n'; }
+}, v);
+```
 Interpretation: value is from the left branch or the right branch.
 
-#pagebreak()
+= Sum Types
 
-= Untyped Lambda Calculus
+Rust version:
 
-Syntax:
+```rust
+enum Either<L, R> {Left(L), Right(R),}
+let v: Either<i32, String> = Either::Left(42);
+match v {
+    Either::Left(n) => println!("int: {}", n),
+    Either::Right(s) => println!("length: {}", s.len()),
+}
+```
 
-$t ::= x | (lambda x. t) | t t$
+#v(1.0cm)
 
-Alpha-renaming: bound variable names do not matter.
-
-$lambda x. x equiv lambda y. y$
-
-Beta-reduction: function application substitutes the argument.
-
-$(lambda x. x) y -> y quad quad (lambda x. lambda y. x) a b -> a$
-
-Eta-conversion: a function is determined by its behavior.
-
-$lambda x. f(x) equiv f$
+In next page we'll talk the things above formally.
 
 #pagebreak()
 
 = Simply Typed Lambda Calculus (STLC)
 
+Syntax:
+
+$E ::= x | lambda x. E | (E space E) $
+
 Types:
 
-$T ::= alpha | T -> T | T × T | T + T$
+$T ::= alpha | T -> T | T × T | T + T quad quad quad (alpha$ are built in types)
 
 Typing judgment:
 
@@ -287,9 +355,27 @@ $frac((Γ ⊢ f : A -> B quad Γ ⊢ a : A), (Γ ⊢ f(a) : B)) quad "(app)"$
 
 = Program Derivation Example
 
-Term:  $lambda x. lambda y. x$
+Find a term of Type: $A -> (B -> A)$
 
-Type: $A -> (B -> A)$
+Derivation shape:
+
+/*
+$x:A, y:B ⊢ x:A$
+
+$x:A ⊢ lambda y. x : B -> A$
+
+$⊢ lambda x. lambda y. x : A -> (B -> A)$
+*/
+
+$((x:A, y:B ⊢ x:A) / (x:A ⊢ quad ?_2 quad : B -> A)) / (⊢ quad ?_1 quad : A -> (B -> A))$
+
+
+#pagebreak()
+
+
+= Program Derivation Example
+
+Find a term of Type: $A -> (B -> A)$
 
 Derivation shape:
 
@@ -416,26 +502,6 @@ Do you find any similarities between the logic rules and the typing rules?
 
 #pagebreak()
 
-= Curry-Howard Correspondence !
-
-Judgment-level correspondence:
-
-- Left (logic): $Γ ⊢ A$
-- Right (typed lambda): $Γ ⊢ t : A$
-
-Same context `Γ`, same goal formula/type `A`,
-but on the right we also show the witness term `t`.  $quad$  (Type - Proposition, Term - Proof)
-
-#text(size: 10pt)[
-Here we work in the constructive setting, so LEM is not assumed as a general rule.
-For any proposition `A`, LEM would require a term of type `A + (A -> ⊥)`, which is not uniformly constructible.
-]
-
-
-At this point, we have built a correspondence between propositional logic and STLC.
-
-#pagebreak()
-
 = What the Typing Rules Add
 
 Compare the two judgments again:
@@ -499,7 +565,27 @@ The type checker can reconstruct the proof tree from the term.
 
 #pagebreak()
 
+= Curry-Howard Correspondence !
 
+Judgment-level correspondence:
+
+- Left (logic): $Γ ⊢ A$
+- Right (typed lambda): $Γ ⊢ t : A$
+
+Same context `Γ`, same goal formula/type `A`,
+but on the right we also show the witness term `t`.  $quad$  (Type - Proposition, Term - Proof)
+
+#text(size: 10pt)[
+Here we work in the constructive setting, so LEM is not assumed as a general rule.
+For any proposition `A`, LEM would require a term of type `A + (A -> ⊥)`, which is not uniformly constructible.
+]
+
+
+At this point, we have built a correspondence between propositional logic and STLC.
+
+#pagebreak()
+
+/*
 = Examples: Lean4 + Haskell Proof Terms
 
 Now we instantiate each pair above with concrete terms:
@@ -509,23 +595,24 @@ Now we instantiate each pair above with concrete terms:
 - Some examples also provide C++/Python code for reference. However, note that their type systems are not strong enough, so the proofs are for reference only and have no practical significance.
 
 #pagebreak()
+*/
 
 = Example 1 (Assup): $A -> A$
 
-Haskell witness:
+Haskell:
 
 ```haskell
 idP :: a -> a
 idP x = x
 ```
 
-Lean4 witness:
+Lean4:
 
 ```lean
 theorem ax1 : A -> A := fun a => a
 ```
 
-Other:
+Python & C++:
 
 ```python
 def id_p(x):
@@ -561,6 +648,7 @@ auto ax2 = [](const auto& p) { return p.first; };
 
 #pagebreak()
 
+/*
 = Example 3 (and Elim 2): $(A ∧ B) -> B$
 
 Haskell:
@@ -577,6 +665,7 @@ theorem ax3 (A B : Prop) : A ∧ B -> B := fun h => h.right
 ```
 
 #pagebreak()
+*/
 
 = Example 4 (or Intro 1): $A -> A ∨ B$
 
@@ -603,6 +692,7 @@ template <class A, class B> std::variant<A, B> ax4(A a) {
 
 #pagebreak()
 
+/*
 = Example 5 (or Intro 2): $B -> A ∨ B$
 
 Haskell:
@@ -619,7 +709,7 @@ theorem ax5 (A B : Prop) : B -> A ∨ B := fun b => Or.inr b
 ```
 
 #pagebreak()
-
+*/
 = Example 6 (or Elim)
 
 Formula:
@@ -637,11 +727,12 @@ ax6 f g e = case e of
 
 #pagebreak()
 
+/*
 = Example 6 (or Elim)
 
 Lean4:
 
-/*
+
 ```lean
 theorem ax6 (A B C : Prop) :
   (A -> C) -> (B -> C) -> (A ∨ B) -> C := by
@@ -650,7 +741,7 @@ theorem ax6 (A B C : Prop) :
   | inl a => exact f a
   | inr b => exact g b
 ```
-*/
+
 ```lean
 theorem ax6 (A B C : Prop) :
   (A -> C) -> (B -> C) -> (A ∨ B) -> C := 
@@ -661,6 +752,7 @@ theorem ax6 (A B C : Prop) :
 ```
 
 #pagebreak()
+*/
 
 = Example 6 (or Elim)
 
@@ -689,20 +781,38 @@ toCurried h p q = h (p, q)
 toUncurried :: (p -> q -> r) -> (p, q) -> r
 toUncurried f (p, q) = f p q
 ```
-/*
+
+```python
+def to_curried(h):
+    return lambda p: lambda q: h((p, q))
+
+
+def to_uncurried(f):
+    return lambda pair: f(pair[0])(pair[1])
+```
+
+#pagebreak()
+= Example: Currying
+
 ```cpp
 auto to_curried = [](auto h) {
-  return [h](auto p) { return [h, p](auto q) { return h(std::make_pair(p, q)); }; };
+  return [h](auto p) {
+    return [h, p](auto q) { return h(std::make_pair(p, q)); };
+  };
+};
+auto to_uncurried = [](auto f) {
+  return [f](auto pair) { return f(pair.first)(pair.second); };
 };
 ```
-*/
-
+By the construction, we also proved: $P and Q -> R <-> P -> Q -> R$
+/*
 ```lean
 example : (p → (q → r)) ↔ (p ∧ q → r) :=
   Iff.intro
     (λ f => λ h : p ∧ q => f h.1 h.2)
     (λ f => λ (hp : p) (hq : q) => f ⟨hp, hq⟩)
 ```
+*/
 
 #pagebreak()
 
@@ -834,7 +944,7 @@ theorem double_even :
         [λP2],
         [part of second-order predicate logic],
         [λC],
-        [stronger higher-order dependent type theory / Calculus of Constructions],
+        [Calculus of Constructions (CoC)],
       )
     ]
   ],
@@ -849,6 +959,22 @@ theorem double_even :
 #text(size: 8.5pt)[
 The systems in this talk live near the lower-left part: $lambda_→$ and $lambda P$.
 ]
+
+#pagebreak()
+
+= References
+
+随便挑了几个：
+
+
+- *#link("https://www.bilibili.com/video/BV1JV4y1Y7UD")[bilbili video BV1JV4y1Y7UD]*
+
+- #link("https://infinity-type-cafe.github.io/ntype-cafe-summer-school/")[神秘类型论系列视频]
+
+// #link("https://zhuanlan.zhihu.com/p/356853437")[神秘知乎STLC文章]
+
+
+
 
 #pagebreak()
 
